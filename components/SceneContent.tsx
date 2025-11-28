@@ -1,6 +1,6 @@
 import React, { useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useScroll, Image, SpotLight, MeshReflectorMaterial, RoundedBox, useTexture } from '@react-three/drei';
+import { useScroll, Image, SpotLight, RoundedBox, useTexture, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 
 // CAMERA CONFIGURATION
@@ -129,12 +129,6 @@ const FallbackRoom = () => (
         <planeGeometry args={[10, 120]} />
         <meshStandardMaterial color="#111" />
       </mesh>
-      {[-10, -5, 0, 5, 10, 15, 20].map((z, i) => (
-        <mesh key={i} position={[0, 11.5, z]} rotation={[0, 0, 0]}>
-          <boxGeometry args={[9, 0.2, 0.5]} />
-          <meshStandardMaterial color="#333" />
-        </mesh>
-      ))}
   </group>
 );
 
@@ -151,35 +145,33 @@ const TexturedRoom = () => {
 
   return (
     <group>
+      {/* Floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
         <planeGeometry args={[10, 120]} /> 
-        <MeshReflectorMaterial
-          map={floorTexture}
-          blur={[400, 100]}
-          resolution={1024}
-          mixBlur={1}
-          mixStrength={15} 
-          roughness={0.7}
-          depthScale={1.2}
-          minDepthThreshold={0.4}
-          maxDepthThreshold={1.4}
-          color="#999" 
-          metalness={0.4}
-          mirror={0.3} 
+        {/* REVERTED TO STANDARD MATERIAL FOR STABILITY */}
+        <meshStandardMaterial 
+          map={floorTexture} 
+          roughness={0.7} 
+          metalness={0.2}
+          color="#999"
         />
       </mesh>
+      {/* Left Wall */}
       <mesh position={[-5, 10, 0]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
         <planeGeometry args={[120, 20]} />
         <meshStandardMaterial map={wallTexture} color="#ffffff" roughness={0.8} />
       </mesh>
+      {/* Right Wall */}
       <mesh position={[5, 10, 0]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
         <planeGeometry args={[120, 20]} />
         <meshStandardMaterial map={wallTexture} color="#ffffff" roughness={0.8} />
       </mesh>
+      {/* Ceiling */}
        <mesh position={[0, 12, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[10, 120]} />
         <meshStandardMaterial color="#111" roughness={0.9} /> 
       </mesh>
+      {/* Beams */}
       {[-10, -5, 0, 5, 10, 15, 20].map((z, i) => (
         <mesh key={i} position={[0, 11.5, z]} rotation={[0, 0, 0]}>
           <boxGeometry args={[9, 0.2, 0.5]} />
@@ -191,7 +183,6 @@ const TexturedRoom = () => {
 }
 
 const FramedArt = ({ position, rotation, url }: { position: [number, number, number], rotation: [number, number, number], url: string }) => {
-    // This component now handles its own texture loading inside
     const texture = useTexture(url);
     return (
         <group position={position} rotation={rotation}>
@@ -261,7 +252,8 @@ const SceneContent: React.FC<SceneContentProps> = ({ setCursorText }) => {
   const vecTarget = useMemo(() => new THREE.Vector3(), []);
 
   useFrame((state) => {
-    const r = scroll.offset;
+    // Safety check for scroll
+    const r = scroll ? scroll.offset : 0;
     vecPos.lerpVectors(START_POS, END_POS, r);
     state.camera.position.copy(vecPos);
     vecTarget.lerpVectors(START_TARGET, END_TARGET, r);
@@ -273,11 +265,15 @@ const SceneContent: React.FC<SceneContentProps> = ({ setCursorText }) => {
       <color attach="background" args={['#050505']} />
       <fog attach="fog" args={['#050505', 5, 30]} />
       <ambientLight intensity={0.5} color="#ffffff" />
+      {/* City environment gives good general reflections */}
+      <Environment preset="city" />
 
-      {/* 
-        CRITICAL FIX: Isolate Texture loading 
-        If textures fail, FallbackRoom renders immediately.
-      */}
+      {/* DEBUG CUBE: If you see this Red Box, WebGL is working. */}
+      <mesh position={[0, 0.5, 0]} visible={false}>
+          <boxGeometry args={[0.1, 0.1, 0.1]} />
+          <meshBasicMaterial color="red" />
+      </mesh>
+
       <Suspense fallback={<FallbackRoom />}>
          <TexturedRoom />
       </Suspense>
@@ -297,7 +293,6 @@ const SceneContent: React.FC<SceneContentProps> = ({ setCursorText }) => {
       <Plinth position={[-3.5, 0, 9]} artType="stone" rotationY={0.2} />
       <Plinth position={[3.5, 0, 9]} artType="gold" rotationY={-0.2} />
 
-      {/* Wrap each art piece in suspense so one failure doesn't kill the scene */}
       <Suspense fallback={<FallbackArt position={[-4.92, 3.5, 3]} rotation={[0, Math.PI/2, 0]} />}>
           <FramedArt 
             position={[-4.92, 3.5, 3]} 

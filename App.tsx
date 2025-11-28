@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect, useRef, ReactNode, Component } from 'react';
+import React, { Suspense, useState, useEffect, useRef, ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Loader, Html } from '@react-three/drei';
 import Experience from './components/Experience';
@@ -16,7 +16,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = {
     hasError: false,
     error: null
@@ -33,12 +33,18 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
         return this.props.fallback;
       }
       
-      // Default error UI
+      // Visible Error UI
       return (
         <Html center>
-          <div className="w-[300px] p-4 bg-red-900/90 text-white rounded text-center border border-red-500 font-mono text-xs">
-            <p className="mb-2">Asset Failed to Load</p>
-            <p className="opacity-70 mb-2">{this.state.error?.message}</p>
+          <div className="w-[300px] p-4 bg-red-900/90 text-white rounded text-center border border-red-500 font-mono text-xs z-[99999]">
+            <p className="mb-2 font-bold">Rendering Error</p>
+            <p className="opacity-70 mb-4">{this.state.error?.message || "Unknown error occurred"}</p>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-white text-black rounded hover:bg-gray-200 transition-colors"
+            >
+              Reload Page
+            </button>
           </div>
         </Html>
       );
@@ -94,25 +100,25 @@ const App: React.FC = () => {
       <CustomCursor text={cursorText} />
       
       <Canvas 
-        shadows="soft" // Use soft shadows, simpler calculation
-        dpr={[1, 1.5]} // Cap pixel ratio for performance
-        camera={{ position: [0, 10, 11], fov: 35 }}
+        shadows="soft"
+        dpr={[1, 1.5]}
+        camera={{ position: [0, 10, 14], fov: 35 }}
         style={{ width: '100%', height: '100%', background: '#050505' }}
         gl={{ 
           antialias: true, 
           alpha: false,
           powerPreference: "high-performance",
-          failIfMajorPerformanceCaveat: true
+          failIfMajorPerformanceCaveat: false 
         }}
       >
         <ErrorBoundary fallback={null}>
-           <Suspense fallback={null}>
+           {/* Wrap everything in Suspense with an HTML fallback so we see *something* while textures load */}
+           <Suspense fallback={<Html center><div className="text-white font-mono text-sm tracking-widest animate-pulse">LOADING 3D ASSETS...</div></Html>}>
               <Experience setCursorText={setCursorText} />
            </Suspense>
         </ErrorBoundary>
       </Canvas>
       
-      {/* High Z-Index Loader to ensure visibility over everything */}
       <Loader 
         containerStyles={{ background: '#050505', zIndex: 99999 }}
         innerStyles={{ width: '200px', height: '2px', background: '#333' }}
