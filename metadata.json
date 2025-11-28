@@ -1,0 +1,5 @@
+{
+  "name": "Immersive 3D Scroll Gallery",
+  "description": "A WebGL-based immersive scrolling experience where the camera transitions from a bird's-eye view to a focused projector screen view, inspired by high-end portfolio designs.",
+  "requestFramePermissions": []
+}
