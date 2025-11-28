@@ -12,10 +12,11 @@ const Experience: React.FC<ExperienceProps> = ({ setCursorText }) => {
       <color attach="background" args={['#050505']} />
       
       {/* 
-        pages=5 gives us a 500vh long scroll container.
-        damping=0.2 makes the scroll smooth.
+        Reduced pages from 5 to 3.5.
+        This shortens the scroll distance required to complete the animation,
+        making it easier for the user to "scroll past" the iframe when finished.
       */}
-      <ScrollControls pages={5} damping={0.2}>
+      <ScrollControls pages={3.5} damping={0.2}>
         {/* The 3D Scene (Camera logic is handled inside here) */}
         <SceneContent setCursorText={setCursorText} />
 
@@ -30,7 +31,7 @@ const Experience: React.FC<ExperienceProps> = ({ setCursorText }) => {
           </section>
 
           {/* BLOCK 2: Spacer */}
-          <section className="h-[300vh] w-full pointer-events-none"></section>
+          <section className="h-[150vh] w-full pointer-events-none"></section>
 
           {/* BLOCK 3: Bottom Section - Empty */}
           <section className="h-[100vh] w-full pointer-events-none">

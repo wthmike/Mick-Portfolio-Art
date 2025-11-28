@@ -14,10 +14,11 @@
         padding: 0;
         width: 100%;
         height: 100%;
-        overflow: hidden;
+        /* removed overflow: hidden to allow natural scroll bubbling */
         background-color: #050505;
         font-family: 'Space Grotesk', sans-serif;
-        overscroll-behavior: none; 
+        /* overscroll-behavior: auto allows the scroll to pass to the parent page when we hit the bottom */
+        overscroll-behavior: auto; 
       }
       
       #root {
