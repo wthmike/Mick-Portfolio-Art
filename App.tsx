@@ -1,4 +1,4 @@
-import React, { Component, Suspense, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { Suspense, useState, useEffect, useRef, ReactNode, Component } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Loader, Html } from '@react-three/drei';
 import Experience from './components/Experience';
@@ -17,10 +17,13 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = {
-    hasError: false,
-    error: null
-  };
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null
+    };
+  }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -93,37 +96,38 @@ const App: React.FC = () => {
   const [cursorText, setCursorText] = useState('');
 
   return (
-    <div style={{ width: '100%', height: '100dvh', position: 'relative', backgroundColor: '#050505' }}>
+    <div style={{ width: '100%', height: '100dvh', position: 'relative', backgroundColor: '#020202' }}>
       <CustomCursor text={cursorText} />
       
       <Canvas 
         dpr={[1, 1.5]}
         camera={{ position: [0, 10, 14], fov: 40 }}
-        style={{ width: '100%', height: '100%', background: '#050505' }}
+        style={{ width: '100%', height: '100%', background: '#020202' }}
         gl={{ 
           antialias: true, 
           alpha: false,
           powerPreference: "high-performance",
           failIfMajorPerformanceCaveat: false 
         }}
+        // Shadows disabled for maximum stability on Vercel deployment
+        shadows={false} 
       >
         <ErrorBoundary fallback={null}>
-           {/* Wrap everything in Suspense with an HTML fallback */}
-           <Suspense fallback={<Html center><div className="text-white font-mono text-sm tracking-widest animate-pulse">LOADING GALLERY...</div></Html>}>
+           <Suspense fallback={<Html center><div className="text-white font-mono text-sm tracking-widest animate-pulse opacity-50">INITIALIZING</div></Html>}>
               <Experience setCursorText={setCursorText} />
            </Suspense>
         </ErrorBoundary>
       </Canvas>
       
       <Loader 
-        containerStyles={{ background: '#050505', zIndex: 99999 }}
+        containerStyles={{ background: '#020202', zIndex: 99999 }}
         innerStyles={{ width: '200px', height: '2px', background: '#333' }}
         barStyles={{ height: '2px', background: '#fff' }}
         dataStyles={{ fontSize: '10px', fontFamily: 'Space Grotesk', textTransform: 'uppercase', letterSpacing: '0.2em', color: '#666' }}
-        dataInterpolation={(p) => `Loading Assets ${p.toFixed(0)}%`}
+        dataInterpolation={(p) => `Loading Gallery ${p.toFixed(0)}%`}
       />
       
-      <div className="absolute bottom-8 left-0 w-full text-center text-gray-500 text-xs tracking-widest pointer-events-none opacity-50 mix-blend-difference z-10">
+      <div className="absolute bottom-8 left-0 w-full text-center text-gray-500 text-xs tracking-widest pointer-events-none opacity-30 mix-blend-difference z-10">
         SCROLL TO EXPLORE
       </div>
     </div>
