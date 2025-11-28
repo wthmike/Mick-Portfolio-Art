@@ -4,7 +4,6 @@ import { useScroll, Image, SpotLight, MeshReflectorMaterial, RoundedBox, useText
 import * as THREE from 'three';
 
 // CAMERA CONFIGURATION
-// Vertical elevator movement only (no zoom).
 const START_POS = new THREE.Vector3(0, 8, 14);
 const END_POS = new THREE.Vector3(0, 1.4, 14);
 
@@ -304,7 +303,7 @@ const ProjectorScreen: React.FC<ProjectorScreenProps> = ({ setCursorText }) => {
                       setCursorText('');
                     }}
                     onClick={() => {
-                        console.log("View Project clicked");
+                        window.open("https://webflow.com", "_blank");
                     }}
                 />
             </group>

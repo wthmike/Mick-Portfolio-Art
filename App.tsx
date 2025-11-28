@@ -1,29 +1,11 @@
-import React, { Suspense, useState, useEffect, useRef, ReactNode, Component } from 'react';
+import React, { Suspense, useState, useEffect, useRef, ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { useProgress, Html } from '@react-three/drei';
+import { Loader, Html } from '@react-three/drei';
 import Experience from './components/Experience';
 
 // --- COMPONENTS ---
 
-// 1. Loading Screen
-function LoadingScreen() {
-  const { progress } = useProgress();
-  return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#050505] text-white z-50">
-      <div className="w-48 h-[2px] bg-gray-800 rounded-full overflow-hidden mb-4">
-        <div 
-          className="h-full bg-white transition-all duration-300 ease-out"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-      <span className="font-mono text-xs tracking-widest opacity-50">
-        LOADING GALLERY {progress.toFixed(0)}%
-      </span>
-    </div>
-  );
-}
-
-// 2. Error Boundary
+// 1. Error Boundary
 interface ErrorBoundaryProps {
   children?: ReactNode;
 }
@@ -33,7 +15,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
@@ -42,19 +24,19 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   render() {
     if (this.state.hasError) {
-      // CRITICAL FIX: Wrap HTML content in <Html> when rendering inside Canvas
+      // Use Html to render the error UI inside the 3D Canvas context
       return (
         <Html center>
-          <div className="w-[80vw] max-w-md p-6 bg-[#111] border border-red-900/50 rounded-lg text-red-500 text-center font-mono shadow-2xl">
-            <h2 className="text-lg font-bold mb-3 tracking-wide">ASSET LOAD ERROR</h2>
+          <div className="w-[90vw] max-w-md p-6 bg-[#050505] border border-red-900/50 rounded-lg text-red-500 text-center font-mono shadow-2xl z-[99999]">
+            <h2 className="text-lg font-bold mb-3 tracking-wide">GALLERY ERROR</h2>
             <p className="text-xs opacity-70 break-words mb-6 leading-relaxed">
-              {this.state.error?.message || "Unknown error occurred while loading 3D assets."}
+              {this.state.error?.message || "Failed to load gallery assets."}
             </p>
             <button 
               onClick={() => window.location.reload()}
-              className="px-6 py-2 bg-red-900/20 hover:bg-red-900/40 border border-red-800/50 rounded text-xs uppercase tracking-widest transition-colors duration-200"
+              className="px-6 py-2 bg-white text-black hover:bg-gray-200 rounded-full text-xs font-bold uppercase tracking-widest transition-colors duration-200"
             >
-              Reload Experience
+              Reload
             </button>
           </div>
         </Html>
@@ -64,14 +46,13 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 }
 
-// 3. Custom Cursor
+// 2. Custom Cursor
 const CustomCursor = ({ text }: { text: string }) => {
   const cursorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const moveCursor = (e: MouseEvent) => {
       if (cursorRef.current) {
-        // Use translate3d for better performance
         cursorRef.current.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, -50%)`;
       }
     };
@@ -83,8 +64,8 @@ const CustomCursor = ({ text }: { text: string }) => {
   return (
     <div 
       ref={cursorRef} 
-      className="fixed top-0 left-0 pointer-events-none z-[100] will-change-transform"
-      style={{ transform: 'translate3d(0,0,0) translate(-50%, -50%)' }} // Initial state
+      className="fixed top-0 left-0 pointer-events-none z-[100] will-change-transform mix-blend-difference"
+      style={{ transform: 'translate3d(0,0,0) translate(-50%, -50%)' }}
     >
       <div 
         className={`flex items-center justify-center rounded-full bg-white text-black transition-all duration-300 ease-out overflow-hidden ${
@@ -112,25 +93,37 @@ const App: React.FC = () => {
       <CustomCursor text={cursorText} />
       
       {/* 
-        We use a simple HTML Loader here that sits on top of the Canvas.
-        The Canvas itself will suspend until assets are ready.
+        The Canvas itself renders immediately. 
+        Suspense is placed INSIDE to handle the async SceneContent.
+        Loader is placed OUTSIDE to show progress.
       */}
-      <Suspense fallback={<LoadingScreen />}>
-        <Canvas 
-          shadows 
-          dpr={[1, 2]}
-          // Updated initial position to match SceneContent START_POS
-          camera={{ position: [0, 10, 11], fov: 35 }}
-          style={{ width: '100%', height: '100%' }}
-        >
-          {/* ErrorBoundary MUST use <Html> to render inside Canvas */}
-          <ErrorBoundary>
-            <Experience setCursorText={setCursorText} />
-          </ErrorBoundary>
-        </Canvas>
-      </Suspense>
+      <Canvas 
+        shadows 
+        dpr={[1, 2]}
+        camera={{ position: [0, 10, 11], fov: 35 }}
+        style={{ width: '100%', height: '100%', background: '#050505' }}
+        gl={{ antialias: true, alpha: false }} // alpha: false helps with performance and black backgrounds
+      >
+        <ErrorBoundary>
+           <Suspense fallback={null}>
+              <Experience setCursorText={setCursorText} />
+           </Suspense>
+        </ErrorBoundary>
+      </Canvas>
       
-      <div className="absolute bottom-8 left-0 w-full text-center text-gray-500 text-xs tracking-widest pointer-events-none opacity-50 mix-blend-difference">
+      {/* 
+        Drei Loader: Automatically hooks into the loading manager.
+        Shows up whenever textures/models are loading.
+      */}
+      <Loader 
+        containerStyles={{ background: '#050505' }}
+        innerStyles={{ width: '200px', height: '2px', background: '#333' }}
+        barStyles={{ height: '2px', background: '#fff' }}
+        dataStyles={{ fontSize: '10px', fontFamily: 'Space Grotesk', textTransform: 'uppercase', letterSpacing: '0.2em' }}
+        dataInterpolation={(p) => `Loading ${p.toFixed(0)}%`}
+      />
+      
+      <div className="absolute bottom-8 left-0 w-full text-center text-gray-500 text-xs tracking-widest pointer-events-none opacity-50 mix-blend-difference z-10">
         SCROLL TO EXPLORE
       </div>
     </div>
