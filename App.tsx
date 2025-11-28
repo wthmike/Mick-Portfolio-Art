@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { Suspense, useState, useEffect, useRef, ReactNode, Component } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Loader, Html } from '@react-three/drei';
 import Experience from './components/Experience';
@@ -7,7 +7,8 @@ import Experience from './components/Experience';
 
 // 1. Error Boundary
 interface ErrorBoundaryProps {
-  children?: ReactNode;
+  children: ReactNode;
+  fallback?: ReactNode;
 }
 
 interface ErrorBoundaryState {
@@ -15,8 +16,11 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  public state: ErrorBoundaryState = { hasError: false, error: null };
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = {
+    hasError: false,
+    error: null
+  };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -24,20 +28,17 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   render() {
     if (this.state.hasError) {
-      // Use Html to render the error UI inside the 3D Canvas context
+      // If a fallback UI is provided, render it
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+      
+      // Default error UI
       return (
         <Html center>
-          <div className="w-[90vw] max-w-md p-6 bg-[#050505] border border-red-900/50 rounded-lg text-red-500 text-center font-mono shadow-2xl z-[99999]">
-            <h2 className="text-lg font-bold mb-3 tracking-wide">GALLERY ERROR</h2>
-            <p className="text-xs opacity-70 break-words mb-6 leading-relaxed">
-              {this.state.error?.message || "Failed to load gallery assets."}
-            </p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-6 py-2 bg-white text-black hover:bg-gray-200 rounded-full text-xs font-bold uppercase tracking-widest transition-colors duration-200"
-            >
-              Reload
-            </button>
+          <div className="w-[300px] p-4 bg-red-900/90 text-white rounded text-center border border-red-500 font-mono text-xs">
+            <p className="mb-2">Asset Failed to Load</p>
+            <p className="opacity-70 mb-2">{this.state.error?.message}</p>
           </div>
         </Html>
       );
@@ -92,35 +93,32 @@ const App: React.FC = () => {
     <div style={{ width: '100%', height: '100dvh', position: 'relative', backgroundColor: '#050505' }}>
       <CustomCursor text={cursorText} />
       
-      {/* 
-        The Canvas itself renders immediately. 
-        Suspense is placed INSIDE to handle the async SceneContent.
-        Loader is placed OUTSIDE to show progress.
-      */}
       <Canvas 
-        shadows 
-        dpr={[1, 2]}
+        shadows="soft" // Use soft shadows, simpler calculation
+        dpr={[1, 1.5]} // Cap pixel ratio for performance
         camera={{ position: [0, 10, 11], fov: 35 }}
         style={{ width: '100%', height: '100%', background: '#050505' }}
-        gl={{ antialias: true, alpha: false }} // alpha: false helps with performance and black backgrounds
+        gl={{ 
+          antialias: true, 
+          alpha: false,
+          powerPreference: "high-performance",
+          failIfMajorPerformanceCaveat: true
+        }}
       >
-        <ErrorBoundary>
+        <ErrorBoundary fallback={null}>
            <Suspense fallback={null}>
               <Experience setCursorText={setCursorText} />
            </Suspense>
         </ErrorBoundary>
       </Canvas>
       
-      {/* 
-        Drei Loader: Automatically hooks into the loading manager.
-        Shows up whenever textures/models are loading.
-      */}
+      {/* High Z-Index Loader to ensure visibility over everything */}
       <Loader 
-        containerStyles={{ background: '#050505' }}
+        containerStyles={{ background: '#050505', zIndex: 99999 }}
         innerStyles={{ width: '200px', height: '2px', background: '#333' }}
         barStyles={{ height: '2px', background: '#fff' }}
-        dataStyles={{ fontSize: '10px', fontFamily: 'Space Grotesk', textTransform: 'uppercase', letterSpacing: '0.2em' }}
-        dataInterpolation={(p) => `Loading ${p.toFixed(0)}%`}
+        dataStyles={{ fontSize: '10px', fontFamily: 'Space Grotesk', textTransform: 'uppercase', letterSpacing: '0.2em', color: '#666' }}
+        dataInterpolation={(p) => `Loading Gallery ${p.toFixed(0)}%`}
       />
       
       <div className="absolute bottom-8 left-0 w-full text-center text-gray-500 text-xs tracking-widest pointer-events-none opacity-50 mix-blend-difference z-10">
