@@ -1,4 +1,4 @@
-import React, { useMemo, Suspense } from 'react';
+import React, { useMemo, Suspense, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Image, SpotLight, RoundedBox, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
@@ -11,7 +11,7 @@ const END_TARGET = new THREE.Vector3(0, 1.4, 0);
 
 interface SceneContentProps {
   setCursorText: (text: string) => void;
-  containerRef: React.RefObject<HTMLDivElement>;
+  trackRef: React.RefObject<HTMLDivElement>;
 }
 
 // --- SUB COMPONENTS ---
@@ -243,37 +243,43 @@ const ProjectorScreen: React.FC<ProjectorScreenProps> = ({ setCursorText }) => {
     )
 }
 
-const SceneContent: React.FC<SceneContentProps> = ({ setCursorText, containerRef }) => {
+const SceneContent: React.FC<SceneContentProps> = ({ setCursorText, trackRef }) => {
   const vecPos = useMemo(() => new THREE.Vector3(), []);
   const vecTarget = useMemo(() => new THREE.Vector3(), []);
+  const smoothR = useRef(0); // For damping
   
-  useFrame((state) => {
-    let r = 0;
+  useFrame((state, delta) => {
+    let targetR = 0;
     
-    // Calculate scroll progress based on the DOM container position relative to viewport
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
+    // Calculate scroll progress based on the DOM track position relative to viewport
+    if (trackRef.current) {
+      const rect = trackRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
       
-      // The total scrollable distance is the container height minus the viewport height
-      // (because the sticky element takes up 1 viewport height)
+      // The total scrollable distance is the track height minus the viewport height
       const totalDistance = rect.height - viewportHeight;
       
       // rect.top is 0 when the sticky element just hits the top.
-      // rect.top becomes negative as we scroll down.
-      // We start animation exactly when it hits top (0) and end when we've scrolled the full distance.
       if (totalDistance > 0) {
-        // Calculate progress: 0 when top is 0, 1 when we've scrolled totalDistance
-        const progress = -rect.top / totalDistance;
-        
-        // Clamp between 0 and 1
-        r = Math.max(0, Math.min(1, progress));
+        // We only start calculating progress when rect.top <= 0 (top of viewport)
+        if (rect.top <= 0) {
+           const progress = Math.abs(rect.top) / totalDistance;
+           targetR = Math.max(0, Math.min(1, progress));
+        } else {
+           // Not reached yet
+           targetR = 0;
+        }
       }
     }
 
-    vecPos.lerpVectors(START_POS, END_POS, r);
+    // Smooth damping for the animation value
+    // This handles small jitters from scroll inputs (especially Lenis)
+    const dampFactor = 5;
+    smoothR.current = THREE.MathUtils.lerp(smoothR.current, targetR, dampFactor * delta);
+
+    vecPos.lerpVectors(START_POS, END_POS, smoothR.current);
     state.camera.position.copy(vecPos);
-    vecTarget.lerpVectors(START_TARGET, END_TARGET, r);
+    vecTarget.lerpVectors(START_TARGET, END_TARGET, smoothR.current);
     state.camera.lookAt(vecTarget);
   });
 

@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { Component, Suspense, useState, useEffect, useRef, ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Loader, Html } from '@react-three/drei';
 import Experience from './components/Experience';
@@ -16,7 +16,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = {
     hasError: false,
     error: null
@@ -91,29 +91,84 @@ const CustomCursor = ({ text }: { text: string }) => {
 
 const App: React.FC = () => {
   const [cursorText, setCursorText] = useState('');
-  const containerRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const canvasWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Manual Pinning Logic
+  // This replaces CSS position: sticky which can be flaky in nested Webflow structures or with overflow: hidden
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!trackRef.current || !canvasWrapperRef.current) return;
+
+      const rect = trackRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      
+      // Calculate when the track is active
+      const isPastTop = rect.top <= 0;
+      const isBeforeBottom = rect.bottom >= viewportHeight;
+
+      if (isPastTop && isBeforeBottom) {
+        // PINNED: The element is fully occupying the view
+        canvasWrapperRef.current.style.position = 'fixed';
+        canvasWrapperRef.current.style.top = '0';
+        canvasWrapperRef.current.style.left = '0';
+        canvasWrapperRef.current.style.width = '100%';
+        canvasWrapperRef.current.style.height = '100%';
+        canvasWrapperRef.current.style.bottom = 'auto';
+        canvasWrapperRef.current.style.zIndex = '10'; // Ensure it sits on top if needed
+      } else if (!isPastTop) {
+        // BEFORE: The element is coming up
+        canvasWrapperRef.current.style.position = 'absolute';
+        canvasWrapperRef.current.style.top = '0';
+        canvasWrapperRef.current.style.left = '0';
+        canvasWrapperRef.current.style.width = '100%';
+        canvasWrapperRef.current.style.height = '100vh'; // Explicit height
+        canvasWrapperRef.current.style.bottom = 'auto';
+        canvasWrapperRef.current.style.zIndex = 'auto';
+      } else {
+        // AFTER: The element has passed
+        canvasWrapperRef.current.style.position = 'absolute';
+        canvasWrapperRef.current.style.top = 'auto';
+        canvasWrapperRef.current.style.left = '0';
+        canvasWrapperRef.current.style.width = '100%';
+        canvasWrapperRef.current.style.height = '100vh'; // Explicit height
+        canvasWrapperRef.current.style.bottom = '0';
+        canvasWrapperRef.current.style.zIndex = 'auto';
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Also listen to resize to handle viewport changes
+    window.addEventListener('resize', handleScroll);
+    
+    // Initial check
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, []);
 
   return (
     <div className="w-full relative bg-[#050505]">
       <CustomCursor text={cursorText} />
       
       {/* 
-        SCROLL TRACK
-        This container defines the scrollable area.
-        The height (e.g., 350vh) determines how long the 3D scroll effect lasts.
-        The animation maps the scroll position within this container.
+        SCROLL TRACK (The Spacer)
+        400vh gives enough room for a smooth animation.
+        This element stays in the document flow and gives the page height.
       */}
       <div 
-        ref={containerRef} 
+        ref={trackRef} 
         className="relative w-full"
-        style={{ height: '350vh' }}
+        style={{ height: '400vh' }}
       >
         {/* 
-          STICKY WRAPPER
-          This keeps the 3D canvas filling the screen while the user scrolls through the track.
-          Using position: sticky allows for natural scrolling interaction.
+          CANVAS WRAPPER
+          This element gets manipulated by JS to switch between absolute and fixed positioning.
         */}
-        <div className="sticky top-0 h-[100dvh] w-full overflow-hidden">
+        <div ref={canvasWrapperRef} className="absolute top-0 left-0 w-full h-[100vh] overflow-hidden">
           <Canvas 
             dpr={[1, 1.5]}
             camera={{ position: [0, 10, 14], fov: 40 }}
@@ -128,12 +183,12 @@ const App: React.FC = () => {
           >
             <ErrorBoundary fallback={null}>
                <Suspense fallback={<Html center><div className="text-white font-mono text-sm tracking-widest animate-pulse opacity-50">INITIALIZING</div></Html>}>
-                  <Experience setCursorText={setCursorText} containerRef={containerRef} />
+                  {/* Pass trackRef so the scene knows the global progress */}
+                  <Experience setCursorText={setCursorText} trackRef={trackRef} />
                </Suspense>
             </ErrorBoundary>
           </Canvas>
           
-          {/* Overlay UI elements inside the sticky container so they stay on screen */}
           <div className="absolute bottom-8 left-0 w-full text-center text-gray-500 text-xs tracking-widest pointer-events-none opacity-30 mix-blend-difference z-10">
             SCROLL TO EXPLORE
           </div>

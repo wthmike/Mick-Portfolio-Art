@@ -3,18 +3,18 @@ import SceneContent from './SceneContent';
 
 interface ExperienceProps {
   setCursorText: (text: string) => void;
-  containerRef: React.RefObject<HTMLDivElement>;
+  trackRef: React.RefObject<HTMLDivElement>;
 }
 
-const Experience: React.FC<ExperienceProps> = ({ setCursorText, containerRef }) => {
+const Experience: React.FC<ExperienceProps> = ({ setCursorText, trackRef }) => {
   return (
     <>
       <color attach="background" args={['#050505']} />
       {/* 
-        We no longer use ScrollControls. 
-        The scroll logic is now handled by measuring the container's DOM position in SceneContent.
+        We pass the trackRef down to SceneContent so it can calculate 
+        animation progress based on the main track's position in the DOM.
       */}
-      <SceneContent setCursorText={setCursorText} containerRef={containerRef} />
+      <SceneContent setCursorText={setCursorText} trackRef={trackRef} />
     </>
   );
 };
