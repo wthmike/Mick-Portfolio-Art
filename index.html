@@ -13,17 +13,16 @@
         margin: 0;
         padding: 0;
         width: 100%;
-        height: 100%;
-        /* removed overflow: hidden to allow natural scroll bubbling */
+        /* Ensure natural scroll behavior */
         background-color: #050505;
         font-family: 'Space Grotesk', sans-serif;
-        /* overscroll-behavior: auto allows the scroll to pass to the parent page when we hit the bottom */
         overscroll-behavior: auto; 
       }
       
       #root {
         width: 100%;
-        height: 100%;
+        /* Allow root to grow with content for sticky scroll */
+        min-height: 100vh;
       }
       
       /* Hide scrollbar for overlay */

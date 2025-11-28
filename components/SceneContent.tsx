@@ -1,6 +1,6 @@
-import React, { useMemo, Suspense, useRef } from 'react';
+import React, { useMemo, Suspense } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useScroll, Image, SpotLight, RoundedBox, useTexture } from '@react-three/drei';
+import { Image, SpotLight, RoundedBox, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
 // CAMERA CONFIGURATION
@@ -11,6 +11,7 @@ const END_TARGET = new THREE.Vector3(0, 1.4, 0);
 
 interface SceneContentProps {
   setCursorText: (text: string) => void;
+  containerRef: React.RefObject<HTMLDivElement>;
 }
 
 // --- SUB COMPONENTS ---
@@ -242,13 +243,34 @@ const ProjectorScreen: React.FC<ProjectorScreenProps> = ({ setCursorText }) => {
     )
 }
 
-const SceneContent: React.FC<SceneContentProps> = ({ setCursorText }) => {
-  const scroll = useScroll();
+const SceneContent: React.FC<SceneContentProps> = ({ setCursorText, containerRef }) => {
   const vecPos = useMemo(() => new THREE.Vector3(), []);
   const vecTarget = useMemo(() => new THREE.Vector3(), []);
   
-  useFrame((state, delta) => {
-    const r = scroll ? scroll.offset : 0;
+  useFrame((state) => {
+    let r = 0;
+    
+    // Calculate scroll progress based on the DOM container position relative to viewport
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      
+      // The total scrollable distance is the container height minus the viewport height
+      // (because the sticky element takes up 1 viewport height)
+      const totalDistance = rect.height - viewportHeight;
+      
+      // rect.top is 0 when the sticky element just hits the top.
+      // rect.top becomes negative as we scroll down.
+      // We start animation exactly when it hits top (0) and end when we've scrolled the full distance.
+      if (totalDistance > 0) {
+        // Calculate progress: 0 when top is 0, 1 when we've scrolled totalDistance
+        const progress = -rect.top / totalDistance;
+        
+        // Clamp between 0 and 1
+        r = Math.max(0, Math.min(1, progress));
+      }
+    }
+
     vecPos.lerpVectors(START_POS, END_POS, r);
     state.camera.position.copy(vecPos);
     vecTarget.lerpVectors(START_TARGET, END_TARGET, r);

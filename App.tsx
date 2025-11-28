@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect, useRef, ReactNode, Component } from 'react';
+import React, { Suspense, useState, useEffect, useRef, ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Loader, Html } from '@react-three/drei';
 import Experience from './components/Experience';
@@ -16,15 +16,11 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = {
     hasError: false,
     error: null
   };
-
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-  }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -95,31 +91,55 @@ const CustomCursor = ({ text }: { text: string }) => {
 
 const App: React.FC = () => {
   const [cursorText, setCursorText] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
 
   return (
-    <div style={{ width: '100%', height: '100dvh', position: 'relative', backgroundColor: '#020202' }}>
+    <div className="w-full relative bg-[#050505]">
       <CustomCursor text={cursorText} />
       
-      <Canvas 
-        dpr={[1, 1.5]}
-        camera={{ position: [0, 10, 14], fov: 40 }}
-        style={{ width: '100%', height: '100%', background: '#020202' }}
-        gl={{ 
-          antialias: true, 
-          alpha: false,
-          powerPreference: "high-performance",
-          failIfMajorPerformanceCaveat: false 
-        }}
-        // Shadows disabled for maximum stability on Vercel deployment
-        shadows={false} 
+      {/* 
+        SCROLL TRACK
+        This container defines the scrollable area.
+        The height (e.g., 350vh) determines how long the 3D scroll effect lasts.
+        The animation maps the scroll position within this container.
+      */}
+      <div 
+        ref={containerRef} 
+        className="relative w-full"
+        style={{ height: '350vh' }}
       >
-        <ErrorBoundary fallback={null}>
-           <Suspense fallback={<Html center><div className="text-white font-mono text-sm tracking-widest animate-pulse opacity-50">INITIALIZING</div></Html>}>
-              <Experience setCursorText={setCursorText} />
-           </Suspense>
-        </ErrorBoundary>
-      </Canvas>
-      
+        {/* 
+          STICKY WRAPPER
+          This keeps the 3D canvas filling the screen while the user scrolls through the track.
+          Using position: sticky allows for natural scrolling interaction.
+        */}
+        <div className="sticky top-0 h-[100dvh] w-full overflow-hidden">
+          <Canvas 
+            dpr={[1, 1.5]}
+            camera={{ position: [0, 10, 14], fov: 40 }}
+            style={{ width: '100%', height: '100%', background: '#020202' }}
+            gl={{ 
+              antialias: true, 
+              alpha: false,
+              powerPreference: "high-performance",
+              failIfMajorPerformanceCaveat: false 
+            }}
+            shadows={false} 
+          >
+            <ErrorBoundary fallback={null}>
+               <Suspense fallback={<Html center><div className="text-white font-mono text-sm tracking-widest animate-pulse opacity-50">INITIALIZING</div></Html>}>
+                  <Experience setCursorText={setCursorText} containerRef={containerRef} />
+               </Suspense>
+            </ErrorBoundary>
+          </Canvas>
+          
+          {/* Overlay UI elements inside the sticky container so they stay on screen */}
+          <div className="absolute bottom-8 left-0 w-full text-center text-gray-500 text-xs tracking-widest pointer-events-none opacity-30 mix-blend-difference z-10">
+            SCROLL TO EXPLORE
+          </div>
+        </div>
+      </div>
+
       <Loader 
         containerStyles={{ background: '#020202', zIndex: 99999 }}
         innerStyles={{ width: '200px', height: '2px', background: '#333' }}
@@ -127,10 +147,6 @@ const App: React.FC = () => {
         dataStyles={{ fontSize: '10px', fontFamily: 'Space Grotesk', textTransform: 'uppercase', letterSpacing: '0.2em', color: '#666' }}
         dataInterpolation={(p) => `Loading Gallery ${p.toFixed(0)}%`}
       />
-      
-      <div className="absolute bottom-8 left-0 w-full text-center text-gray-500 text-xs tracking-widest pointer-events-none opacity-30 mix-blend-difference z-10">
-        SCROLL TO EXPLORE
-      </div>
     </div>
   );
 };
