@@ -107,7 +107,7 @@ const FramedArt = ({ position, rotation, url }: { position: [number, number, num
             {/* Canvas - Standard Material to ensure it's not emissive/unlit */}
             <mesh position={[0, 0, 0.01]} rotation={[0, 0, 0]}>
                 <planeGeometry args={[1.9, 2.9]} />
-                <meshStandardMaterial map={texture} roughness={0.5} />
+                <meshStandardMaterial map={texture} roughness={0.5} color="white" />
             </mesh>
         </group>
     )
