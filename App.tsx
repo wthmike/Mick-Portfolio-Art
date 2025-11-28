@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { Suspense, useState, useEffect, useRef, ReactNode, Component } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { useProgress, Html } from '@react-three/drei';
 import Experience from './components/Experience';
@@ -33,11 +33,8 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -45,13 +42,22 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   render() {
     if (this.state.hasError) {
+      // CRITICAL FIX: Wrap HTML content in <Html> when rendering inside Canvas
       return (
-        <div className="absolute inset-0 flex items-center justify-center bg-black text-red-500 p-8 text-center font-mono">
-          <div>
-            <h2 className="text-xl mb-2">Failed to load experience</h2>
-            <p className="text-sm opacity-70">{this.state.error?.message}</p>
+        <Html center>
+          <div className="w-[80vw] max-w-md p-6 bg-[#111] border border-red-900/50 rounded-lg text-red-500 text-center font-mono shadow-2xl">
+            <h2 className="text-lg font-bold mb-3 tracking-wide">ASSET LOAD ERROR</h2>
+            <p className="text-xs opacity-70 break-words mb-6 leading-relaxed">
+              {this.state.error?.message || "Unknown error occurred while loading 3D assets."}
+            </p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-red-900/20 hover:bg-red-900/40 border border-red-800/50 rounded text-xs uppercase tracking-widest transition-colors duration-200"
+            >
+              Reload Experience
+            </button>
           </div>
-        </div>
+        </Html>
       );
     }
     return this.props.children;
@@ -117,6 +123,7 @@ const App: React.FC = () => {
           camera={{ position: [0, 10, 11], fov: 35 }}
           style={{ width: '100%', height: '100%' }}
         >
+          {/* ErrorBoundary MUST use <Html> to render inside Canvas */}
           <ErrorBoundary>
             <Experience setCursorText={setCursorText} />
           </ErrorBoundary>
