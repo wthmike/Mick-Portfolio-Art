@@ -1,4 +1,4 @@
-import React, { Suspense, useState, useEffect, useRef, ReactNode } from 'react';
+import React, { Component, Suspense, useState, useEffect, useRef, ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Loader, Html } from '@react-three/drei';
 import Experience from './components/Experience';
@@ -16,7 +16,7 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = {
     hasError: false,
     error: null
@@ -28,12 +28,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   render() {
     if (this.state.hasError) {
-      // If a fallback UI is provided, render it
       if (this.props.fallback) {
         return this.props.fallback;
       }
-      
-      // Visible Error UI
       return (
         <Html center>
           <div className="w-[300px] p-4 bg-red-900/90 text-white rounded text-center border border-red-500 font-mono text-xs z-[99999]">
@@ -100,9 +97,8 @@ const App: React.FC = () => {
       <CustomCursor text={cursorText} />
       
       <Canvas 
-        shadows="soft"
         dpr={[1, 1.5]}
-        camera={{ position: [0, 10, 14], fov: 35 }}
+        camera={{ position: [0, 10, 14], fov: 40 }}
         style={{ width: '100%', height: '100%', background: '#050505' }}
         gl={{ 
           antialias: true, 
@@ -112,8 +108,8 @@ const App: React.FC = () => {
         }}
       >
         <ErrorBoundary fallback={null}>
-           {/* Wrap everything in Suspense with an HTML fallback so we see *something* while textures load */}
-           <Suspense fallback={<Html center><div className="text-white font-mono text-sm tracking-widest animate-pulse">LOADING 3D ASSETS...</div></Html>}>
+           {/* Wrap everything in Suspense with an HTML fallback */}
+           <Suspense fallback={<Html center><div className="text-white font-mono text-sm tracking-widest animate-pulse">LOADING GALLERY...</div></Html>}>
               <Experience setCursorText={setCursorText} />
            </Suspense>
         </ErrorBoundary>
@@ -124,7 +120,7 @@ const App: React.FC = () => {
         innerStyles={{ width: '200px', height: '2px', background: '#333' }}
         barStyles={{ height: '2px', background: '#fff' }}
         dataStyles={{ fontSize: '10px', fontFamily: 'Space Grotesk', textTransform: 'uppercase', letterSpacing: '0.2em', color: '#666' }}
-        dataInterpolation={(p) => `Loading Gallery ${p.toFixed(0)}%`}
+        dataInterpolation={(p) => `Loading Assets ${p.toFixed(0)}%`}
       />
       
       <div className="absolute bottom-8 left-0 w-full text-center text-gray-500 text-xs tracking-widest pointer-events-none opacity-50 mix-blend-difference z-10">
